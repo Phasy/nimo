@@ -15,7 +15,6 @@ class AddCategoryScreen extends ConsumerStatefulWidget {
 
   final CategoryType type;
   final FinanceCategory? category;
-
   final int? initialGroupId;
 
   @override
@@ -197,6 +196,7 @@ class _AddCategoryScreenState
                     ),
                   ),
                 ),
+
                 if (_isEditing) ...[
                   const SizedBox(height: 14),
                   SizedBox(
@@ -206,12 +206,15 @@ class _AddCategoryScreenState
                           ? null
                           : _confirmDeactivate,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFF04438),
+                        foregroundColor:
+                        const Color(0xFFF04438),
                         side: const BorderSide(
                           color: Color(0xFFF04438),
                         ),
                       ),
-                      child: const Text('Deactivate category'),
+                      child: const Text(
+                        'Deactivate category',
+                      ),
                     ),
                   ),
                 ],
@@ -245,16 +248,47 @@ class _AddCategoryScreenState
 
       final name = _nameController.text.trim();
 
+      final duplicateExists =
+      await repository.categoryNameExists(
+        name: name,
+        groupId: groupId,
+        excludingCategoryId: widget.category?.id,
+      );
+
+      if (duplicateExists) {
+        if (!mounted) {
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'A category named "$name" already exists in this group.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
+        return;
+      }
+
       if (_isEditing) {
         final current = widget.category!;
 
-        final updated = current.copyWith(
-          name: name,
-          groupId: groupId,
-          updatedAt: DateTime.now(),
-        );
+        if (current.groupId != groupId) {
+          await repository.moveCategory(
+            category: current,
+            newGroupId: groupId,
+            name: name,
+          );
+        } else {
+          final updated = current.copyWith(
+            name: name,
+            updatedAt: DateTime.now(),
+          );
 
-        await repository.updateCategory(updated);
+          await repository.updateCategory(updated);
+        }
       } else {
         final existingCategories = await ref.read(
           categoriesProvider(groupId).future,
@@ -320,7 +354,9 @@ class _AddCategoryScreenState
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Deactivate category?'),
+          title: const Text(
+            'Deactivate category?',
+          ),
           content: Text(
             '${category.name} will no longer appear when creating new transactions. Historical transactions will keep this category.',
           ),
@@ -336,7 +372,8 @@ class _AddCategoryScreenState
                 Navigator.of(context).pop(true);
               },
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFF04438),
+                backgroundColor:
+                const Color(0xFFF04438),
               ),
               child: const Text('Deactivate'),
             ),

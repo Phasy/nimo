@@ -292,6 +292,102 @@ class DriftCategoryRepository implements CategoryRepository {
     });
   }
 
+  @override
+  Future<bool> groupNameExists({
+    required String name,
+    required category_domain.CategoryType type,
+    int? excludingGroupId,
+  }) async {
+    final normalizedName = name.trim().toLowerCase();
+
+    final query = _db.select(_db.categoryGroups)
+      ..where(
+            (table) =>
+        table.type.equals(type.name) &
+        table.isActive.equals(true) &
+        table.name.lower().equals(normalizedName),
+      );
+
+    if (excludingGroupId != null) {
+      query.where(
+            (table) => table.id.equals(excludingGroupId).not(),
+      );
+    }
+
+    final existing = await query.getSingleOrNull();
+
+    return existing != null;
+  }
+
+  @override
+  Future<bool> categoryNameExists({
+    required String name,
+    required int groupId,
+    int? excludingCategoryId,
+  }) async {
+    final normalizedName = name.trim().toLowerCase();
+
+    final query = _db.select(_db.categories)
+      ..where(
+            (table) =>
+        table.groupId.equals(groupId) &
+        table.isActive.equals(true) &
+        table.name.lower().equals(normalizedName),
+      );
+
+    if (excludingCategoryId != null) {
+      query.where(
+            (table) =>
+            table.id.equals(excludingCategoryId).not(),
+      );
+    }
+
+    final existing = await query.getSingleOrNull();
+
+    return existing != null;
+  }
+
+  @override
+  Future<void> moveCategory({
+    required finance_domain.FinanceCategory category,
+    required int newGroupId,
+    required String name,
+  }) async {
+    await _db.transaction(() async {
+      final destinationQuery = _db.select(_db.categories)
+        ..where(
+              (table) =>
+          table.groupId.equals(newGroupId) &
+          table.isActive.equals(true),
+        )
+        ..orderBy([
+              (table) => OrderingTerm.desc(table.sortOrder),
+        ])
+        ..limit(1);
+
+      final lastCategory =
+      await destinationQuery.getSingleOrNull();
+
+      final nextSortOrder =
+      lastCategory == null
+          ? 0
+          : lastCategory.sortOrder + 1;
+
+      await (_db.update(_db.categories)
+        ..where(
+              (table) => table.id.equals(category.id),
+        ))
+          .write(
+        CategoriesCompanion(
+          groupId: Value(newGroupId),
+          name: Value(name.trim()),
+          sortOrder: Value(nextSortOrder),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+    });
+  }
+
   category_domain.CategoryGroup _mapGroup(
       CategoryGroup row,
       ) {

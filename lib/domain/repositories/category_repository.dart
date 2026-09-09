@@ -44,4 +44,22 @@ abstract class CategoryRepository {
       );
 
   Future<void> ensureDefaultsExist();
+
+  Future<bool> groupNameExists({
+    required String name,
+    required CategoryType type,
+    int? excludingGroupId,
+  });
+
+  Future<bool> categoryNameExists({
+    required String name,
+    required int groupId,
+    int? excludingCategoryId,
+  });
+
+  Future<void> moveCategory({
+    required FinanceCategory category,
+    required int newGroupId,
+    required String name,
+  });
 }

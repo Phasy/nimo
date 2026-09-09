@@ -6,6 +6,8 @@ import '../../../domain/models/finance_category.dart';
 import '../application/category_providers.dart';
 import 'add_category_screen.dart';
 import 'add_category_group_screen.dart';
+import 'reorder_categories_screen.dart';
+import 'reorder_groups_screen.dart';
 
 class CategoriesScreen extends ConsumerStatefulWidget {
   const CategoriesScreen({super.key});
@@ -30,6 +32,24 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: 'Reorder groups',
+            icon: const Icon(
+              Icons.swap_vert_rounded,
+            ),
+            onPressed: () async {
+              await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => ReorderGroupsScreen(
+                    type: _selectedType,
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 6),
+        ],
       ),
       body: Column(
         children: [
@@ -376,6 +396,7 @@ class _GroupHeader extends StatelessWidget {
                       ),
                     ),
                   );
+                  break;
 
                 case _GroupAction.addCategory:
                   await Navigator.of(context).push<bool>(
@@ -386,6 +407,18 @@ class _GroupHeader extends StatelessWidget {
                       ),
                     ),
                   );
+                  break;
+
+                case _GroupAction.reorderCategories:
+                  await Navigator.of(context).push<bool>(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ReorderCategoriesScreen(
+                            group: group,
+                          ),
+                    ),
+                  );
+                  break;
               }
             },
             itemBuilder: (context) {
@@ -406,6 +439,18 @@ class _GroupHeader extends StatelessWidget {
                     title: Text('Add category'),
                   ),
                 ),
+                PopupMenuItem(
+                  value: _GroupAction.reorderCategories,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      Icons.swap_vert_rounded,
+                    ),
+                    title: Text(
+                      'Reorder categories',
+                    ),
+                  ),
+                ),
               ];
             },
           ),
@@ -418,6 +463,7 @@ class _GroupHeader extends StatelessWidget {
 enum _GroupAction {
   edit,
   addCategory,
+  reorderCategories,
 }
 
 enum _AddAction {

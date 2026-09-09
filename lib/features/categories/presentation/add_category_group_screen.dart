@@ -185,6 +185,33 @@ class _AddCategoryGroupScreenState
 
       final name = _nameController.text.trim();
 
+      final duplicateExists = await repository.groupNameExists(
+        name: name,
+        type: widget.type,
+        excludingGroupId: widget.group?.id,
+      );
+
+      if (duplicateExists) {
+        if (!mounted) {
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'A ${widget.type.name} group named "$name" already exists.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
+        setState(() {
+          _isSaving = false;
+        });
+
+        return;
+      }
+
       if (_isEditing) {
         final current = widget.group!;
 
