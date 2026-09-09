@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/models/category_group.dart';
 import '../../../domain/models/finance_category.dart';
 import '../application/category_providers.dart';
+import 'add_category_screen.dart';
+import 'add_category_group_screen.dart';
 
 class CategoriesScreen extends ConsumerStatefulWidget {
   const CategoriesScreen({super.key});
@@ -88,21 +90,53 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          _showComingSoon(context);
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Add'),
-      ),
-    );
-  }
+      floatingActionButton: PopupMenuButton<_AddAction>(
+        offset: const Offset(0, -110),
+        onSelected: (action) async {
+          switch (action) {
+            case _AddAction.category:
+              await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => AddCategoryScreen(
+                    type: _selectedType,
+                  ),
+                ),
+              );
 
-  void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Adding categories is coming next.',
+            case _AddAction.group:
+              await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => AddCategoryGroupScreen(
+                    type: _selectedType,
+                  ),
+                ),
+              );
+          }
+        },
+        itemBuilder: (context) {
+          return const [
+            PopupMenuItem(
+              value: _AddAction.category,
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.label_outline),
+                title: Text('Add category'),
+              ),
+            ),
+            PopupMenuItem(
+              value: _AddAction.group,
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.folder_outlined),
+                title: Text('Add group'),
+              ),
+            ),
+          ];
+        },
+        child: const FloatingActionButton.extended(
+          onPressed: null,
+          icon: Icon(Icons.add),
+          label: Text('Add'),
         ),
       ),
     );
@@ -276,6 +310,7 @@ class _CategoryGroupCard extends ConsumerWidget {
                   ) ...[
                     _CategoryRow(
                       category: categories[index],
+                      type: group.type,
                     ),
                     if (index != categories.length - 1)
                       const Divider(
@@ -324,21 +359,55 @@ class _GroupHeader extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Group editing is coming next.',
-                  ),
-                ),
-              );
-            },
+          PopupMenuButton<_GroupAction>(
             tooltip: 'Group options',
             icon: const Icon(
               Icons.more_horiz,
               color: Color(0xFF667085),
             ),
+            onSelected: (action) async {
+              switch (action) {
+                case _GroupAction.edit:
+                  await Navigator.of(context).push<bool>(
+                    MaterialPageRoute(
+                      builder: (_) => AddCategoryGroupScreen(
+                        type: group.type,
+                        group: group,
+                      ),
+                    ),
+                  );
+
+                case _GroupAction.addCategory:
+                  await Navigator.of(context).push<bool>(
+                    MaterialPageRoute(
+                      builder: (_) => AddCategoryScreen(
+                        type: group.type,
+                        initialGroupId: group.id,
+                      ),
+                    ),
+                  );
+              }
+            },
+            itemBuilder: (context) {
+              return const [
+                PopupMenuItem(
+                  value: _GroupAction.edit,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.edit_outlined),
+                    title: Text('Edit group'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _GroupAction.addCategory,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.add),
+                    title: Text('Add category'),
+                  ),
+                ),
+              ];
+            },
           ),
         ],
       ),
@@ -346,21 +415,34 @@ class _GroupHeader extends StatelessWidget {
   }
 }
 
+enum _GroupAction {
+  edit,
+  addCategory,
+}
+
+enum _AddAction {
+  category,
+  group,
+}
+
 class _CategoryRow extends StatelessWidget {
   const _CategoryRow({
     required this.category,
+    required this.type,
   });
 
   final FinanceCategory category;
+  final CategoryType type;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Edit ${category.name} is coming next.',
+      onTap: () async {
+        await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => AddCategoryScreen(
+              type: type,
+              category: category,
             ),
           ),
         );
