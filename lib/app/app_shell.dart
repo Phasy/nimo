@@ -49,6 +49,7 @@ class _AppShellState extends State<AppShell> {
       ),
 
       floatingActionButton: FloatingActionButton(
+        heroTag: 'main_shell_add_transaction_fab',
         onPressed: _showAddTransactionSheet,
         backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,

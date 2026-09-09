@@ -87,7 +87,7 @@ class _AddAccountScreenState extends ConsumerState<AddAccountScreen> {
             // Once the transaction ledger is introduced, editing an
             // opening balance must use proper adjustment/reconciliation
             // rules instead.
-            currentBalance: amountInNgwee,
+            currentBalance: existingAccount.currentBalance,
 
             isActive: existingAccount.isActive,
             createdAt: existingAccount.createdAt,

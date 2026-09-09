@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme.dart';
 import '../../../core/utils/money.dart';
 import '../../../domain/models/finance_account.dart';
+import '../../../domain/models/finance_transaction.dart';
+import '../../categories/application/category_providers.dart';
+import '../../transactions/application/transaction_providers.dart';
+import '../../transactions/presentation/transaction_detail_screen.dart';
 import '../application/account_providers.dart';
 import 'add_account_screen.dart';
 
@@ -14,60 +18,6 @@ class AccountDetailScreen extends ConsumerWidget {
     super.key,
     required this.accountId,
   });
-  
-  Future<void> _confirmDeactivate(
-      BuildContext context,
-      WidgetRef ref,
-      FinanceAccount account,
-      ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Deactivate account?'),
-          content: Text(
-            'This will hide "${account.name}" from your active accounts. '
-                'Its history will remain preserved.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.danger,
-              ),
-              child: const Text('Deactivate'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmed != true) {
-      return;
-    }
-
-    final repository = ref.read(
-      accountRepositoryProvider,
-    );
-
-    await repository.deactivateAccount(
-      account.id,
-    );
-
-    if (!context.mounted) {
-      return;
-    }
-
-    Navigator.of(context).pop();
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -121,7 +71,7 @@ class AccountDetailScreen extends ConsumerWidget {
           ),
         );
       },
-      error: (error, stackTrace) {
+      error: (_, __) {
         return const Scaffold(
           backgroundColor: AppTheme.background,
           body: _AccountLoadError(),
@@ -131,7 +81,7 @@ class AccountDetailScreen extends ConsumerWidget {
   }
 }
 
-class _AccountDetailContent extends StatelessWidget {
+class _AccountDetailContent extends ConsumerWidget {
   final FinanceAccount account;
 
   const _AccountDetailContent({
@@ -139,7 +89,19 @@ class _AccountDetailContent extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final transactionsAsync = ref.watch(
+      transactionsForAccountProvider(account.id),
+    );
+
+    final accountsAsync = ref.watch(
+      accountsProvider,
+    );
+
+    final categoriesAsync = ref.watch(
+      categoriesProvider(null),
+    );
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(
         20,
@@ -154,7 +116,7 @@ class _AccountDetailContent extends StatelessWidget {
 
         const SizedBox(height: 28),
 
-        _SectionTitle(
+        const _SectionTitle(
           title: 'ACCOUNT DETAILS',
         ),
 
@@ -166,13 +128,46 @@ class _AccountDetailContent extends StatelessWidget {
 
         const SizedBox(height: 28),
 
-        _SectionTitle(
+        const _SectionTitle(
           title: 'TRANSACTIONS',
         ),
 
         const SizedBox(height: 10),
 
-        const _TransactionsPlaceholder(),
+        transactionsAsync.when(
+          data: (transactions) {
+            if (transactions.isEmpty) {
+              return const _EmptyTransactions();
+            }
+
+            return accountsAsync.when(
+              data: (accounts) {
+                return categoriesAsync.when(
+                  data: (categories) {
+                    return _TransactionsCard(
+                      account: account,
+                      transactions: transactions,
+                      accounts: accounts,
+                      categories: categories,
+                    );
+                  },
+                  loading: () =>
+                  const _TransactionsLoading(),
+                  error: (_, __) =>
+                  const _TransactionsError(),
+                );
+              },
+              loading: () =>
+              const _TransactionsLoading(),
+              error: (_, __) =>
+              const _TransactionsError(),
+            );
+          },
+          loading: () =>
+          const _TransactionsLoading(),
+          error: (_, __) =>
+          const _TransactionsError(),
+        ),
       ],
     );
   }
@@ -208,38 +203,44 @@ class _BalanceCard extends StatelessWidget {
                   color: AppTheme.primary.withValues(
                     alpha: 0.08,
                   ),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius:
+                  BorderRadius.circular(14),
                 ),
                 child: Icon(
                   _iconForAccount(account.type),
                   color: AppTheme.primaryDark,
                 ),
               ),
-
               const SizedBox(width: 14),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
                   children: [
                     Text(
                       account.name,
                       maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                      Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
+                      overflow:
+                      TextOverflow.ellipsis,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(
+                        fontWeight:
+                        FontWeight.w700,
+                        color:
+                        AppTheme.textPrimary,
                       ),
                     ),
-
                     const SizedBox(height: 3),
-
                     Text(
                       _labelForAccount(account),
-                      style:
-                      Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(
+                        color: AppTheme
+                            .textSecondary,
                       ),
                     ),
                   ],
@@ -252,7 +253,10 @@ class _BalanceCard extends StatelessWidget {
 
           Text(
             'CURRENT BALANCE',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            style: Theme.of(context)
+                .textTheme
+                .labelMedium
+                ?.copyWith(
               color: AppTheme.textSecondary,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.9,
@@ -262,8 +266,13 @@ class _BalanceCard extends StatelessWidget {
           const SizedBox(height: 6),
 
           Text(
-            Money.formatZmw(account.currentBalance),
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            Money.formatZmw(
+              account.currentBalance,
+            ),
+            style: Theme.of(context)
+                .textTheme
+                .headlineMedium
+                ?.copyWith(
               fontWeight: FontWeight.w800,
               color: AppTheme.textPrimary,
               letterSpacing: -0.5,
@@ -286,12 +295,16 @@ class _BalanceCard extends StatelessWidget {
         return Icons.payments_outlined;
 
       case AccountType.other:
-        return Icons.account_balance_wallet_outlined;
+        return Icons
+            .account_balance_wallet_outlined;
     }
   }
 
-  String _labelForAccount(FinanceAccount account) {
-    if (account.provider != null && account.provider!.isNotEmpty) {
+  String _labelForAccount(
+      FinanceAccount account,
+      ) {
+    if (account.provider != null &&
+        account.provider!.isNotEmpty) {
       return account.provider!;
     }
 
@@ -332,7 +345,9 @@ class _DetailsCard extends StatelessWidget {
         children: [
           _DetailRow(
             label: 'Account type',
-            value: _accountTypeLabel(account.type),
+            value: _accountTypeLabel(
+              account.type,
+            ),
           ),
 
           if (account.provider != null &&
@@ -384,6 +399,493 @@ class _DetailsCard extends StatelessWidget {
   }
 }
 
+class _TransactionsCard extends StatelessWidget {
+  final FinanceAccount account;
+  final List<FinanceTransaction> transactions;
+  final List<FinanceAccount> accounts;
+  final List<dynamic> categories;
+
+  const _TransactionsCard({
+    required this.account,
+    required this.transactions,
+    required this.accounts,
+    required this.categories,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppTheme.border,
+        ),
+      ),
+      child: Column(
+        children: [
+          for (var index = 0;
+          index < transactions.length;
+          index++) ...[
+            _AccountTransactionTile(
+              account: account,
+              transaction:
+              transactions[index],
+              otherAccount: _otherAccount(
+                transactions[index],
+              ),
+              categoryName: _categoryName(
+                transactions[index],
+              ),
+            ),
+
+            if (index !=
+                transactions.length - 1)
+              const Divider(
+                height: 1,
+                indent: 68,
+                endIndent: 16,
+                color: AppTheme.border,
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  FinanceAccount? _otherAccount(
+      FinanceTransaction transaction,
+      ) {
+    if (transaction.type !=
+        TransactionType.transfer) {
+      return null;
+    }
+
+    int? otherAccountId;
+
+    if (transaction.accountId == account.id) {
+      otherAccountId =
+          transaction.destinationAccountId;
+    } else {
+      otherAccountId =
+          transaction.accountId;
+    }
+
+    if (otherAccountId == null) {
+      return null;
+    }
+
+    for (final item in accounts) {
+      if (item.id == otherAccountId) {
+        return item;
+      }
+    }
+
+    return null;
+  }
+
+  String? _categoryName(
+      FinanceTransaction transaction,
+      ) {
+    final categoryId = transaction.categoryId;
+
+    if (categoryId == null) {
+      return null;
+    }
+
+    for (final category in categories) {
+      if (category.id == categoryId) {
+        return category.name as String;
+      }
+    }
+
+    return null;
+  }
+}
+
+class _AccountTransactionTile
+    extends StatelessWidget {
+  final FinanceAccount account;
+  final FinanceTransaction transaction;
+  final FinanceAccount? otherAccount;
+  final String? categoryName;
+
+  const _AccountTransactionTile({
+    required this.account,
+    required this.transaction,
+    required this.otherAccount,
+    required this.categoryName,
+  });
+
+  bool get _isOutgoingTransfer {
+    return transaction.type ==
+        TransactionType.transfer &&
+        transaction.accountId == account.id;
+  }
+
+  bool get _isIncomingTransfer {
+    return transaction.type ==
+        TransactionType.transfer &&
+        transaction.destinationAccountId ==
+            account.id;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) =>
+                TransactionDetailScreen(
+                  transactionId:
+                  transaction.id,
+                ),
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 15,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(
+                  alpha: 0.08,
+                ),
+                borderRadius:
+                BorderRadius.circular(13),
+              ),
+              child: Icon(
+                _icon,
+                size: 20,
+                color: AppTheme.primaryDark,
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _title,
+                    maxLines: 1,
+                    overflow:
+                    TextOverflow.ellipsis,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(
+                      fontWeight:
+                      FontWeight.w600,
+                      color:
+                      AppTheme.textPrimary,
+                    ),
+                  ),
+
+                  const SizedBox(height: 3),
+
+                  Text(
+                    _subtitle,
+                    maxLines: 1,
+                    overflow:
+                    TextOverflow.ellipsis,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(
+                      color: AppTheme
+                          .textSecondary,
+                    ),
+                  ),
+
+                  const SizedBox(height: 3),
+
+                  Text(
+                    _formattedDate,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(
+                      color: AppTheme
+                          .textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 10),
+
+            Text(
+              _formattedAmount,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
+                  ?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: _amountColor,
+              ),
+            ),
+
+            const SizedBox(width: 4),
+
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: AppTheme.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String get _title {
+    if (transaction.type ==
+        TransactionType.transfer) {
+      final name =
+          otherAccount?.name ?? 'Unknown account';
+
+      if (_isOutgoingTransfer) {
+        return 'Transfer to $name';
+      }
+
+      return 'Transfer from $name';
+    }
+
+    final payee = transaction.payee?.trim();
+
+    if (payee != null && payee.isNotEmpty) {
+      return payee;
+    }
+
+    if (categoryName != null) {
+      return categoryName!;
+    }
+
+    return transaction.type ==
+        TransactionType.income
+        ? 'Income'
+        : 'Expense';
+  }
+
+  String get _subtitle {
+    switch (transaction.type) {
+      case TransactionType.income:
+      case TransactionType.expense:
+        return categoryName ??
+            'Uncategorized';
+
+      case TransactionType.transfer:
+        if (_isOutgoingTransfer &&
+            transaction.fee > 0) {
+          return 'Transfer • ${Money.formatZmw(transaction.fee)} fee';
+        }
+
+        return 'Transfer';
+    }
+  }
+
+  String get _formattedAmount {
+    switch (transaction.type) {
+      case TransactionType.income:
+        return '+${Money.formatZmw(
+          transaction.amount -
+              transaction.fee,
+        )}';
+
+      case TransactionType.expense:
+        return '-${Money.formatZmw(
+          transaction.amount +
+              transaction.fee,
+        )}';
+
+      case TransactionType.transfer:
+        if (_isIncomingTransfer) {
+          return '+${Money.formatZmw(
+            transaction.amount,
+          )}';
+        }
+
+        return '-${Money.formatZmw(
+          transaction.amount +
+              transaction.fee,
+        )}';
+    }
+  }
+
+  Color get _amountColor {
+    if (transaction.type ==
+        TransactionType.income ||
+        _isIncomingTransfer) {
+      return Colors.green.shade700;
+    }
+
+    return AppTheme.textPrimary;
+  }
+
+  IconData get _icon {
+    switch (transaction.type) {
+      case TransactionType.income:
+        return Icons.south_west_rounded;
+
+      case TransactionType.expense:
+        return Icons.north_east_rounded;
+
+      case TransactionType.transfer:
+        return _isIncomingTransfer
+            ? Icons.call_received_rounded
+            : Icons.call_made_rounded;
+    }
+  }
+
+  String get _formattedDate {
+    final date = transaction.occurredAt;
+
+    final day =
+    date.day.toString().padLeft(2, '0');
+
+    final month =
+    date.month.toString().padLeft(2, '0');
+
+    return '$day/$month/${date.year}';
+  }
+}
+
+class _TransactionsLoading
+    extends StatelessWidget {
+  const _TransactionsLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 110,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius:
+        BorderRadius.circular(18),
+        border: Border.all(
+          color: AppTheme.border,
+        ),
+      ),
+      child: const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+}
+
+class _TransactionsError
+    extends StatelessWidget {
+  const _TransactionsError();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius:
+        BorderRadius.circular(18),
+        border: Border.all(
+          color: AppTheme.border,
+        ),
+      ),
+      child: Text(
+        'Could not load transactions for this account.',
+        textAlign: TextAlign.center,
+        style: Theme.of(context)
+            .textTheme
+            .bodyMedium
+            ?.copyWith(
+          color:
+          AppTheme.textSecondary,
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyTransactions
+    extends StatelessWidget {
+  const _EmptyTransactions();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 24,
+        vertical: 32,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius:
+        BorderRadius.circular(18),
+        border: Border.all(
+          color: AppTheme.border,
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(
+                alpha: 0.08,
+              ),
+              borderRadius:
+              BorderRadius.circular(15),
+            ),
+            child: const Icon(
+              Icons.receipt_long_outlined,
+              color: AppTheme.primaryDark,
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          Text(
+            'No transactions yet',
+            style: Theme.of(context)
+                .textTheme
+                .titleSmall
+                ?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            'Income, expenses, and transfers involving this account will appear here.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(
+              color:
+              AppTheme.textSecondary,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
@@ -405,20 +907,26 @@ class _DetailRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(
+                color:
+                AppTheme.textSecondary,
               ),
             ),
           ),
-
           const SizedBox(width: 16),
-
           Flexible(
             child: Text(
               value,
               textAlign: TextAlign.end,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textPrimary,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(
+                color:
+                AppTheme.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -444,7 +952,10 @@ class _SectionTitle extends StatelessWidget {
       ),
       child: Text(
         title,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+        style: Theme.of(context)
+            .textTheme
+            .labelMedium
+            ?.copyWith(
           color: AppTheme.textSecondary,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.9,
@@ -454,67 +965,8 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _TransactionsPlaceholder extends StatelessWidget {
-  const _TransactionsPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 32,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppTheme.border,
-        ),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(
-                alpha: 0.08,
-              ),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: const Icon(
-              Icons.receipt_long_outlined,
-              color: AppTheme.primaryDark,
-            ),
-          ),
-
-          const SizedBox(height: 14),
-
-          Text(
-            'No transactions yet',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-
-          const SizedBox(height: 6),
-
-          Text(
-            'Transactions for this account will appear here once the ledger is available.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppTheme.textSecondary,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AccountNotFound extends StatelessWidget {
+class _AccountNotFound
+    extends StatelessWidget {
   const _AccountNotFound();
 
   @override
@@ -526,23 +978,32 @@ class _AccountNotFound extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
-              Icons.account_balance_wallet_outlined,
+              Icons
+                  .account_balance_wallet_outlined,
               size: 42,
               color: AppTheme.textSecondary,
             ),
             const SizedBox(height: 16),
             Text(
               'Account not found',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(
+                fontWeight:
+                FontWeight.w700,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               'This account may no longer be active.',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(
+                color:
+                AppTheme.textSecondary,
               ),
             ),
           ],
@@ -552,7 +1013,8 @@ class _AccountNotFound extends StatelessWidget {
   }
 }
 
-class _AccountLoadError extends StatelessWidget {
+class _AccountLoadError
+    extends StatelessWidget {
   const _AccountLoadError();
 
   @override
@@ -563,8 +1025,12 @@ class _AccountLoadError extends StatelessWidget {
         child: Text(
           'Something went wrong while loading this account.',
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: AppTheme.textSecondary,
+          style: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(
+            color:
+            AppTheme.textSecondary,
           ),
         ),
       ),

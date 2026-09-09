@@ -53,6 +53,7 @@ class AccountsScreen extends ConsumerWidget {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'accounts_add_account_fab',
         onPressed: () => _openAddAccount(context),
         backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
