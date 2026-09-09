@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
 import '../../accounts/presentation/accounts_screen.dart';
+import '../../categories/presentation/categories_screen.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
@@ -44,6 +45,19 @@ class MoreScreen extends StatelessWidget {
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => const AccountsScreen(),
+                      ),
+                    );
+                  },
+                ),
+
+                _MoreMenuItem(
+                  icon: Icons.category_outlined,
+                  title: 'Categories',
+                  subtitle: 'Organize income and spending',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const CategoriesScreen(),
                       ),
                     );
                   },

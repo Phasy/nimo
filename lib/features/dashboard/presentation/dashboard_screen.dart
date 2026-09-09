@@ -1,30 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/widgets/finance_card.dart';
 import '../../../core/widgets/money_text.dart';
+import '../../accounts/application/account_providers.dart';
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final totalBalanceAsync = ref.watch(
+      totalAccountBalanceProvider,
+    );
 
-class _DashboardScreenState extends State<DashboardScreen> {
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: _DashboardContent(),
+        child: _DashboardContent(
+          totalBalanceAsync: totalBalanceAsync,
+        ),
       ),
     );
   }
 }
 
 class _DashboardContent extends StatelessWidget {
-  const _DashboardContent();
+  final AsyncValue<int> totalBalanceAsync;
+
+  const _DashboardContent({
+    required this.totalBalanceAsync,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +43,9 @@ class _DashboardContent extends StatelessWidget {
 
           const SizedBox(height: 26),
 
-          const _AvailableCard(),
+          _AvailableCard(
+            totalBalanceAsync: totalBalanceAsync,
+          ),
 
           const SizedBox(height: 28),
 
@@ -92,14 +100,22 @@ class _Header extends StatelessWidget {
             children: [
               Text(
                 'Good morning',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                style: Theme
+                    .of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(
                   color: AppTheme.textSecondary,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Your money',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                style: Theme
+                    .of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textPrimary,
                 ),
@@ -114,11 +130,15 @@ class _Header extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppTheme.border),
+            border: Border.all(
+              color: AppTheme.border,
+            ),
           ),
           child: IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.notifications_none_rounded),
+            icon: const Icon(
+              Icons.notifications_none_rounded,
+            ),
           ),
         ),
       ],
@@ -127,7 +147,11 @@ class _Header extends StatelessWidget {
 }
 
 class _AvailableCard extends StatelessWidget {
-  const _AvailableCard();
+  final AsyncValue<int> totalBalanceAsync;
+
+  const _AvailableCard({
+    required this.totalBalanceAsync,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -143,7 +167,11 @@ class _AvailableCard extends StatelessWidget {
         children: [
           Text(
             'AVAILABLE',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            style: Theme
+                .of(context)
+                .textTheme
+                .labelMedium
+                ?.copyWith(
               color: Colors.white.withValues(alpha: 0.75),
               fontWeight: FontWeight.w700,
               letterSpacing: 1.1,
@@ -152,9 +180,15 @@ class _AvailableCard extends StatelessWidget {
 
           const SizedBox(height: 10),
 
+// Static until the Budget module defines the real
+// "available" calculation.
           MoneyText(
-            amount: 8420,
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+            amount: 842000,
+            style: Theme
+                .of(context)
+                .textTheme
+                .displaySmall
+                ?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
               letterSpacing: -1,
@@ -173,12 +207,12 @@ class _AvailableCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _HeroStat(
-                  label: 'Total money',
-                  amount: 14850,
+                child: _LiveTotalMoneyStat(
+                  totalBalanceAsync: totalBalanceAsync,
                 ),
               ),
-              Expanded(
+
+              const Expanded(
                 child: _HeroStat(
                   label: 'Left to assign',
                   amount: 0,
@@ -188,6 +222,74 @@ class _AvailableCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LiveTotalMoneyStat extends StatelessWidget {
+  final AsyncValue<int> totalBalanceAsync;
+
+  const _LiveTotalMoneyStat({
+    required this.totalBalanceAsync,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Total money',
+          style: Theme
+              .of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(
+            color: Colors.white.withValues(alpha: 0.7),
+          ),
+        ),
+
+        const SizedBox(height: 5),
+
+        totalBalanceAsync.when(
+          data: (totalBalance) {
+            return MoneyText(
+              amount: totalBalance,
+              style: Theme
+                  .of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            );
+          },
+          loading: () {
+            return SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white.withValues(alpha: 0.8),
+              ),
+            );
+          },
+          error: (error, stackTrace) {
+            return Text(
+              '—',
+              style: Theme
+                  .of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }
@@ -208,14 +310,22 @@ class _HeroStat extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          style: Theme
+              .of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(
             color: Colors.white.withValues(alpha: 0.7),
           ),
         ),
         const SizedBox(height: 5),
         MoneyText(
           amount: amount,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          style: Theme
+              .of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.w600,
           ),
@@ -239,7 +349,7 @@ class _MonthlySummary extends StatelessWidget {
                 child: _SummaryItem(
                   icon: Icons.south_west_rounded,
                   title: 'Income',
-                  amount: 21000,
+                  amount: 2100000,
                   color: AppTheme.primary,
                 ),
               ),
@@ -248,7 +358,7 @@ class _MonthlySummary extends StatelessWidget {
                 child: _SummaryItem(
                   icon: Icons.north_east_rounded,
                   title: 'Spent',
-                  amount: 9230,
+                  amount: 923000,
                   color: AppTheme.textPrimary,
                 ),
               ),
@@ -263,7 +373,7 @@ class _MonthlySummary extends StatelessWidget {
                 child: _SummaryItem(
                   icon: Icons.receipt_long_outlined,
                   title: 'Fees',
-                  amount: 180,
+                  amount: 18000,
                   color: AppTheme.warning,
                 ),
               ),
@@ -272,7 +382,7 @@ class _MonthlySummary extends StatelessWidget {
                 child: _SummaryItem(
                   icon: Icons.account_balance_wallet_outlined,
                   title: 'Remaining',
-                  amount: 11590,
+                  amount: 1159000,
                   color: AppTheme.primaryDark,
                 ),
               ),
@@ -323,14 +433,22 @@ class _SummaryItem extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                style: Theme
+                    .of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(
                   color: AppTheme.textSecondary,
                 ),
               ),
               const SizedBox(height: 3),
               MoneyText(
                 amount: amount,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                style: Theme
+                    .of(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textPrimary,
                 ),
@@ -353,24 +471,24 @@ class _BudgetSection extends StatelessWidget {
         horizontal: 18,
         vertical: 8,
       ),
-      child: Column(
-        children: const [
+      child: const Column(
+        children: [
           _BudgetRow(
             name: 'Food',
-            spent: 2450,
-            budget: 3000,
+            spent: 245000,
+            budget: 300000,
           ),
           Divider(height: 1),
           _BudgetRow(
             name: 'Transport',
-            spent: 1200,
-            budget: 2000,
+            spent: 120000,
+            budget: 200000,
           ),
           Divider(height: 1),
           _BudgetRow(
             name: 'Utilities',
-            spent: 1150,
-            budget: 1300,
+            spent: 115000,
+            budget: 130000,
           ),
         ],
       ),
@@ -391,11 +509,16 @@ class _BudgetRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = budget <= 0 ? 0.0 : (spent / budget).clamp(0.0, 1.0);
+    final progress = budget <= 0
+        ? 0.0
+        : (spent / budget).clamp(0.0, 1.0);
+
     final remaining = budget - spent;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(
+        vertical: 16,
+      ),
       child: Column(
         children: [
           Row(
@@ -403,14 +526,22 @@ class _BudgetRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   name,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  style: Theme
+                      .of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
               MoneyText(
                 amount: remaining,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                style: Theme
+                    .of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(
                   color: AppTheme.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
@@ -436,26 +567,42 @@ class _BudgetRow extends StatelessWidget {
             children: [
               MoneyText(
                 amount: spent,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                style: Theme
+                    .of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(
                   color: AppTheme.textSecondary,
                 ),
               ),
               Text(
                 ' of ',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                style: Theme
+                    .of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(
                   color: AppTheme.textSecondary,
                 ),
               ),
               MoneyText(
                 amount: budget,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                style: Theme
+                    .of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(
                   color: AppTheme.textSecondary,
                 ),
               ),
               const Spacer(),
               Text(
                 'remaining',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                style: Theme
+                    .of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(
                   color: AppTheme.textSecondary,
                 ),
               ),
@@ -482,13 +629,13 @@ class _UpcomingSection extends StatelessWidget {
           _UpcomingRow(
             date: 'Tomorrow',
             title: 'Rent',
-            amount: 4500,
+            amount: 450000,
           ),
           Divider(height: 1),
           _UpcomingRow(
             date: '12 Sep',
             title: 'Electricity',
-            amount: 650,
+            amount: 65000,
           ),
         ],
       ),
@@ -510,7 +657,9 @@ class _UpcomingRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 15),
+      padding: const EdgeInsets.symmetric(
+        vertical: 15,
+      ),
       child: Row(
         children: [
           Container(
@@ -535,14 +684,22 @@ class _UpcomingRow extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  style: Theme
+                      .of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   date,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  style: Theme
+                      .of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(
                     color: AppTheme.textSecondary,
                   ),
                 ),
@@ -552,7 +709,11 @@ class _UpcomingRow extends StatelessWidget {
 
           MoneyText(
             amount: amount,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            style: Theme
+                .of(context)
+                .textTheme
+                .titleSmall
+                ?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -578,7 +739,11 @@ class _SectionHeader extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            style: Theme
+                .of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(
               fontWeight: FontWeight.w700,
               color: AppTheme.textPrimary,
             ),
@@ -588,7 +753,11 @@ class _SectionHeader extends StatelessWidget {
         if (actionText != null)
           Text(
             actionText!,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            style: Theme
+                .of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(
               color: AppTheme.primaryDark,
               fontWeight: FontWeight.w600,
             ),
@@ -675,8 +844,9 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-    selected ? AppTheme.primary : AppTheme.textSecondary;
+    final color = selected
+        ? AppTheme.primary
+        : AppTheme.textSecondary;
 
     return InkWell(
       onTap: onTap,
@@ -697,8 +867,9 @@ class _NavItem extends StatelessWidget {
               style: TextStyle(
                 fontSize: 10,
                 color: color,
-                fontWeight:
-                selected ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: selected
+                    ? FontWeight.w600
+                    : FontWeight.w400,
               ),
             ),
           ],
@@ -714,7 +885,12 @@ class _AddTransactionSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(22, 14, 22, 30),
+      padding: const EdgeInsets.fromLTRB(
+        22,
+        14,
+        22,
+        30,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(
@@ -739,7 +915,11 @@ class _AddTransactionSheet extends StatelessWidget {
 
             Text(
               'What do you want to record?',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              style: Theme
+                  .of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -801,7 +981,9 @@ class _TransactionAction extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.1),
+                  color: AppTheme.primary.withValues(
+                    alpha: 0.1,
+                  ),
                   borderRadius: BorderRadius.circular(13),
                 ),
                 child: const Icon(
@@ -818,16 +1000,22 @@ class _TransactionAction extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style:
-                      Theme.of(context).textTheme.titleSmall?.copyWith(
+                      style: Theme
+                          .of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       subtitle,
-                      style:
-                      Theme.of(context).textTheme.bodySmall?.copyWith(
+                      style: Theme
+                          .of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(
                         color: AppTheme.textSecondary,
                       ),
                     ),
@@ -865,7 +1053,11 @@ class _PlaceholderPage extends StatelessWidget {
     return Center(
       child: Text(
         titles[index] ?? '',
-        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+        style: Theme
+            .of(context)
+            .textTheme
+            .headlineSmall
+            ?.copyWith(
           fontWeight: FontWeight.w700,
         ),
       ),
