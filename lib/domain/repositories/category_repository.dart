@@ -2,17 +2,15 @@ import '../models/category_group.dart';
 import '../models/finance_category.dart';
 
 abstract class CategoryRepository {
-  Stream<List<CategoryGroup>> watchGroups({
-    CategoryType? type,
-  });
+  Stream<List<CategoryGroup>> watchGroups({CategoryType? type});
 
-  Stream<List<FinanceCategory>> watchCategories({
-    int? groupId,
-  });
+  Stream<List<FinanceCategory>> watchCategories({int? groupId});
 
   Future<CategoryGroup?> getGroup(int id);
 
   Future<FinanceCategory?> getCategory(int id);
+
+  Future<FinanceCategory?> getCategoryBySystemKey(String systemKey);
 
   Future<int> createGroup({
     required String name,
@@ -38,10 +36,7 @@ abstract class CategoryRepository {
 
   Future<void> reorderGroups(List<int> orderedGroupIds);
 
-  Future<void> reorderCategories(
-      int groupId,
-      List<int> orderedCategoryIds,
-      );
+  Future<void> reorderCategories(int groupId, List<int> orderedCategoryIds);
 
   Future<void> ensureDefaultsExist();
 

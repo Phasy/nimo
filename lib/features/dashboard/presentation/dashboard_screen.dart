@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme.dart';
 import '../../../core/widgets/finance_card.dart';
 import '../../../core/widgets/money_text.dart';
+import '../../../domain/models/category_budget.dart';
+import '../../../domain/models/monthly_budget_summary.dart';
 import '../../accounts/application/account_providers.dart';
+import '../../budget/application/budget_providers.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -14,11 +17,13 @@ class DashboardScreen extends ConsumerWidget {
     final totalBalanceAsync = ref.watch(
       totalAccountBalanceProvider,
     );
+    final budgetAsync = ref.watch(currentMonthlyBudgetProvider);
 
     return Scaffold(
       body: SafeArea(
         child: _DashboardContent(
           totalBalanceAsync: totalBalanceAsync,
+          budgetAsync: budgetAsync,
         ),
       ),
     );
@@ -27,9 +32,11 @@ class DashboardScreen extends ConsumerWidget {
 
 class _DashboardContent extends StatelessWidget {
   final AsyncValue<int> totalBalanceAsync;
+  final AsyncValue<MonthlyBudgetSummary?> budgetAsync;
 
   const _DashboardContent({
     required this.totalBalanceAsync,
+    required this.budgetAsync,
   });
 
   @override
@@ -45,18 +52,19 @@ class _DashboardContent extends StatelessWidget {
 
           _AvailableCard(
             totalBalanceAsync: totalBalanceAsync,
+            budgetAsync: budgetAsync,
           ),
 
           const SizedBox(height: 28),
 
-          const _SectionHeader(
+          _SectionHeader(
             title: 'This month',
-            actionText: 'September 2026',
+            actionText: _formatMonth(DateTime.now()),
           ),
 
           const SizedBox(height: 12),
 
-          const _MonthlySummary(),
+          _MonthlySummary(budgetAsync: budgetAsync),
 
           const SizedBox(height: 28),
 
@@ -67,7 +75,7 @@ class _DashboardContent extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          const _BudgetSection(),
+          _BudgetSection(budgetAsync: budgetAsync),
 
           const SizedBox(height: 28),
 
@@ -99,7 +107,7 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Good morning',
+                'Welcome',
                 style: Theme
                     .of(context)
                     .textTheme
@@ -110,7 +118,7 @@ class _Header extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Your money',
+                'Phasy',
                 style: Theme
                     .of(context)
                     .textTheme
@@ -148,9 +156,11 @@ class _Header extends StatelessWidget {
 
 class _AvailableCard extends StatelessWidget {
   final AsyncValue<int> totalBalanceAsync;
+  final AsyncValue<MonthlyBudgetSummary?> budgetAsync;
 
   const _AvailableCard({
     required this.totalBalanceAsync,
+    required this.budgetAsync,
   });
 
   @override
@@ -180,15 +190,10 @@ class _AvailableCard extends StatelessWidget {
 
           const SizedBox(height: 10),
 
-// Static until the Budget module defines the real
-// "available" calculation.
-          MoneyText(
-            amount: 842000,
-            style: Theme
-                .of(context)
-                .textTheme
-                .displaySmall
-                ?.copyWith(
+          _BudgetMoneyValue(
+            budgetAsync: budgetAsync,
+            select: (summary) => summary.totalAvailable,
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
               letterSpacing: -1,
@@ -212,10 +217,11 @@ class _AvailableCard extends StatelessWidget {
                 ),
               ),
 
-              const Expanded(
-                child: _HeroStat(
+              Expanded(
+                child: _HeroBudgetStat(
                   label: 'Left to assign',
-                  amount: 0,
+                  budgetAsync: budgetAsync,
+                  select: (summary) => summary.leftToAssign,
                 ),
               ),
             ],
@@ -294,13 +300,15 @@ class _LiveTotalMoneyStat extends StatelessWidget {
   }
 }
 
-class _HeroStat extends StatelessWidget {
+class _HeroBudgetStat extends StatelessWidget {
   final String label;
-  final int amount;
+  final AsyncValue<MonthlyBudgetSummary?> budgetAsync;
+  final int Function(MonthlyBudgetSummary summary) select;
 
-  const _HeroStat({
+  const _HeroBudgetStat({
     required this.label,
-    required this.amount,
+    required this.budgetAsync,
+    required this.select,
   });
 
   @override
@@ -319,8 +327,9 @@ class _HeroStat extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 5),
-        MoneyText(
-          amount: amount,
+        _BudgetMoneyValue(
+          budgetAsync: budgetAsync,
+          select: select,
           style: Theme
               .of(context)
               .textTheme
@@ -336,20 +345,30 @@ class _HeroStat extends StatelessWidget {
 }
 
 class _MonthlySummary extends StatelessWidget {
-  const _MonthlySummary();
+  const _MonthlySummary({required this.budgetAsync});
+
+  final AsyncValue<MonthlyBudgetSummary?> budgetAsync;
 
   @override
   Widget build(BuildContext context) {
-    return FinanceCard(
-      child: Column(
-        children: const [
+    return budgetAsync.when(
+      loading: () => const _BudgetLoadingCard(),
+      error: (error, stackTrace) => const _BudgetUnavailableCard(),
+      data: (summary) {
+        if (summary == null) {
+          return const _BudgetNotInitializedCard();
+        }
+
+        return FinanceCard(
+          child: Column(
+            children: [
           Row(
             children: [
               Expanded(
                 child: _SummaryItem(
                   icon: Icons.south_west_rounded,
                   title: 'Income',
-                  amount: 2100000,
+                  amount: summary.grossIncome,
                   color: AppTheme.primary,
                 ),
               ),
@@ -358,7 +377,7 @@ class _MonthlySummary extends StatelessWidget {
                 child: _SummaryItem(
                   icon: Icons.north_east_rounded,
                   title: 'Spent',
-                  amount: 923000,
+                  amount: summary.principalSpent,
                   color: AppTheme.textPrimary,
                 ),
               ),
@@ -373,7 +392,7 @@ class _MonthlySummary extends StatelessWidget {
                 child: _SummaryItem(
                   icon: Icons.receipt_long_outlined,
                   title: 'Fees',
-                  amount: 18000,
+                  amount: summary.fees,
                   color: AppTheme.warning,
                 ),
               ),
@@ -382,14 +401,16 @@ class _MonthlySummary extends StatelessWidget {
                 child: _SummaryItem(
                   icon: Icons.account_balance_wallet_outlined,
                   title: 'Remaining',
-                  amount: 1159000,
+                  amount: summary.remainingThisMonth,
                   color: AppTheme.primaryDark,
                 ),
               ),
             ],
           ),
-        ],
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -462,58 +483,58 @@ class _SummaryItem extends StatelessWidget {
 }
 
 class _BudgetSection extends StatelessWidget {
-  const _BudgetSection();
+  const _BudgetSection({required this.budgetAsync});
+
+  final AsyncValue<MonthlyBudgetSummary?> budgetAsync;
 
   @override
   Widget build(BuildContext context) {
-    return FinanceCard(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 18,
-        vertical: 8,
-      ),
-      child: const Column(
-        children: [
-          _BudgetRow(
-            name: 'Food',
-            spent: 245000,
-            budget: 300000,
+    return budgetAsync.when(
+      loading: () => const _BudgetLoadingCard(),
+      error: (error, stackTrace) => const _BudgetUnavailableCard(),
+      data: (summary) {
+        if (summary == null) {
+          return const _BudgetNotInitializedCard();
+        }
+
+        final categories = summary.categories
+            .where((category) => category.hasActivity)
+            .take(3)
+            .toList();
+
+        if (categories.isEmpty) {
+          return const _EmptyBudgetCard();
+        }
+
+        return FinanceCard(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 8,
           ),
-          Divider(height: 1),
-          _BudgetRow(
-            name: 'Transport',
-            spent: 120000,
-            budget: 200000,
+          child: Column(
+            children: [
+              for (var index = 0; index < categories.length; index++) ...[
+                if (index > 0) const Divider(height: 1),
+                _BudgetRow(category: categories[index]),
+              ],
+            ],
           ),
-          Divider(height: 1),
-          _BudgetRow(
-            name: 'Utilities',
-            spent: 115000,
-            budget: 130000,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 class _BudgetRow extends StatelessWidget {
-  final String name;
-  final int spent;
-  final int budget;
+  final CategoryBudget category;
 
-  const _BudgetRow({
-    required this.name,
-    required this.spent,
-    required this.budget,
-  });
+  const _BudgetRow({required this.category});
 
   @override
   Widget build(BuildContext context) {
-    final progress = budget <= 0
+    final progress = category.planningCapacity <= 0
         ? 0.0
-        : (spent / budget).clamp(0.0, 1.0);
-
-    final remaining = budget - spent;
+        : (category.spent / category.planningCapacity).clamp(0.0, 1.0);
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -525,7 +546,7 @@ class _BudgetRow extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  name,
+                  category.name,
                   style: Theme
                       .of(context)
                       .textTheme
@@ -536,7 +557,7 @@ class _BudgetRow extends StatelessWidget {
                 ),
               ),
               MoneyText(
-                amount: remaining,
+                amount: category.available,
                 style: Theme
                     .of(context)
                     .textTheme
@@ -566,7 +587,7 @@ class _BudgetRow extends StatelessWidget {
           Row(
             children: [
               MoneyText(
-                amount: spent,
+                amount: category.spent,
                 style: Theme
                     .of(context)
                     .textTheme
@@ -586,7 +607,7 @@ class _BudgetRow extends StatelessWidget {
                 ),
               ),
               MoneyText(
-                amount: budget,
+                amount: category.planningCapacity,
                 style: Theme
                     .of(context)
                     .textTheme
@@ -610,6 +631,80 @@ class _BudgetRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _BudgetMoneyValue extends StatelessWidget {
+  const _BudgetMoneyValue({
+    required this.budgetAsync,
+    required this.select,
+    required this.style,
+  });
+
+  final AsyncValue<MonthlyBudgetSummary?> budgetAsync;
+  final int Function(MonthlyBudgetSummary summary) select;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    return budgetAsync.when(
+      data: (summary) => summary == null
+          ? Text('—', style: style)
+          : MoneyText(amount: select(summary), style: style),
+      loading: () => SizedBox(
+        width: 18,
+        height: 18,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: Colors.white.withValues(alpha: 0.8),
+        ),
+      ),
+      error: (error, stackTrace) => Text('—', style: style),
+    );
+  }
+}
+
+class _BudgetLoadingCard extends StatelessWidget {
+  const _BudgetLoadingCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const FinanceCard(
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _BudgetUnavailableCard extends StatelessWidget {
+  const _BudgetUnavailableCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const FinanceCard(
+      child: Text('Budget information is temporarily unavailable.'),
+    );
+  }
+}
+
+class _BudgetNotInitializedCard extends StatelessWidget {
+  const _BudgetNotInitializedCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const FinanceCard(
+      child: Text('Set up your Budget to see this month’s plan.'),
+    );
+  }
+}
+
+class _EmptyBudgetCard extends StatelessWidget {
+  const _EmptyBudgetCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const FinanceCard(
+      child: Text('No category activity this month yet.'),
     );
   }
 }
@@ -1063,4 +1158,23 @@ class _PlaceholderPage extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatMonth(DateTime date) {
+  const months = <String>[
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  return '${months[date.month - 1]} ${date.year}';
 }

@@ -12,22 +12,51 @@ class DriftAccountRepository implements AccountRepository {
   @override
   Stream<List<FinanceAccount>> watchAccounts() {
     final query = database.select(database.accounts)
-      ..where((account) => account.isActive.equals(true))
+      ..where(
+            (account) => account.isActive.equals(true),
+      )
       ..orderBy([
-            (account) => OrderingTerm.asc(account.name),
+            (account) => OrderingTerm.asc(
+          account.name,
+        ),
       ]);
 
     return query.watch().map(
-          (rows) => rows.map(_mapAccount).toList(),
+          (rows) => rows
+          .map(_mapAccount)
+          .toList(),
     );
   }
 
   @override
-  Future<FinanceAccount?> getAccount(int id) async {
+  Stream<List<FinanceAccount>> watchAllAccounts() {
     final query = database.select(database.accounts)
-      ..where((account) => account.id.equals(id));
+      ..orderBy([
+            (account) => OrderingTerm.asc(
+          account.name,
+        ),
+      ]);
 
-    final row = await query.getSingleOrNull();
+    return query.watch().map(
+          (rows) => rows
+          .map(_mapAccount)
+          .toList(),
+    );
+  }
+
+  @override
+  Future<FinanceAccount?> getAccount(
+      int id,
+      ) async {
+    final query = database.select(
+      database.accounts,
+    )
+      ..where(
+            (account) => account.id.equals(id),
+      );
+
+    final row =
+    await query.getSingleOrNull();
 
     if (row == null) {
       return null;
@@ -43,13 +72,19 @@ class DriftAccountRepository implements AccountRepository {
     String? provider,
     required int openingBalance,
   }) {
-    return database.into(database.accounts).insert(
+    return database
+        .into(database.accounts)
+        .insert(
       AccountsCompanion.insert(
         name: name,
-        type: _accountTypeToDatabase(type),
+        type: _accountTypeToDatabase(
+          type,
+        ),
         provider: Value(provider),
-        openingBalance: Value(openingBalance),
-        currentBalance: Value(openingBalance),
+        openingBalance:
+        Value(openingBalance),
+        currentBalance:
+        Value(openingBalance),
       ),
     );
   }
@@ -59,12 +94,16 @@ class DriftAccountRepository implements AccountRepository {
       FinanceAccount account,
       ) async {
     await database.transaction(() async {
-      final query = database.select(database.accounts)
+      final query =
+      database.select(database.accounts)
         ..where(
-              (row) => row.id.equals(account.id),
+              (row) => row.id.equals(
+            account.id,
+          ),
         );
 
-      final existing = await query.getSingleOrNull();
+      final existing =
+      await query.getSingleOrNull();
 
       if (existing == null) {
         throw StateError(
@@ -73,10 +112,10 @@ class DriftAccountRepository implements AccountRepository {
       }
 
       /*
-       * The transaction ledger is now authoritative.
+       * The transaction ledger is authoritative.
        *
-       * Therefore editing an opening balance must NOT
-       * reset currentBalance.
+       * Editing an opening balance must NOT reset
+       * currentBalance.
        *
        * Example:
        *
@@ -96,42 +135,98 @@ class DriftAccountRepository implements AccountRepository {
           existing.currentBalance +
               openingBalanceDifference;
 
-      await (database.update(database.accounts)
+      await (database.update(
+        database.accounts,
+      )
         ..where(
-              (row) => row.id.equals(account.id),
+              (row) => row.id.equals(
+            account.id,
+          ),
         ))
           .write(
         AccountsCompanion(
           name: Value(account.name),
           type: Value(
-            _accountTypeToDatabase(account.type),
+            _accountTypeToDatabase(
+              account.type,
+            ),
           ),
-          provider: Value(account.provider),
+          provider: Value(
+            account.provider,
+          ),
           openingBalance: Value(
             account.openingBalance,
           ),
           currentBalance: Value(
             newCurrentBalance,
           ),
-          isActive: Value(account.isActive),
-          updatedAt: Value(DateTime.now()),
+          isActive: Value(
+            account.isActive,
+          ),
+          updatedAt: Value(
+            DateTime.now(),
+          ),
         ),
       );
     });
   }
 
   @override
-  Future<void> deactivateAccount(int id) async {
-    await (database.update(database.accounts)
+  Future<void> deactivateAccount(
+      int id,
+      ) async {
+    final updatedRows =
+    await (database.update(
+      database.accounts,
+    )
       ..where(
-            (account) => account.id.equals(id),
+            (account) =>
+            account.id.equals(id),
       ))
         .write(
       AccountsCompanion(
-        isActive: const Value(false),
-        updatedAt: Value(DateTime.now()),
+        isActive:
+        const Value(false),
+        updatedAt: Value(
+          DateTime.now(),
+        ),
       ),
     );
+
+    if (updatedRows == 0) {
+      throw StateError(
+        'Account $id does not exist.',
+      );
+    }
+  }
+
+  @override
+  Future<void> reactivateAccount(
+      int id,
+      ) async {
+    final updatedRows =
+    await (database.update(
+      database.accounts,
+    )
+      ..where(
+            (account) =>
+            account.id.equals(id),
+      ))
+        .write(
+      AccountsCompanion(
+        isActive:
+        const Value(true),
+        updatedAt: Value(
+          DateTime.now(),
+        ),
+      ),
+    );
+
+    if (updatedRows == 0) {
+      throw StateError(
+        'Account $id does not exist.',
+      );
+    }
   }
 
   @override
@@ -158,7 +253,8 @@ class DriftAccountRepository implements AccountRepository {
      * keeps the balance adjustment atomic at the
      * SQLite level.
      */
-    final updatedRows = await database.customUpdate(
+    final updatedRows =
+    await database.customUpdate(
       '''
       UPDATE accounts
       SET current_balance = current_balance + ?,
@@ -167,7 +263,9 @@ class DriftAccountRepository implements AccountRepository {
       ''',
       variables: [
         Variable<int>(delta),
-        Variable<DateTime>(DateTime.now()),
+        Variable<DateTime>(
+          DateTime.now(),
+        ),
         Variable<int>(accountId),
       ],
       updates: {
@@ -188,12 +286,16 @@ class DriftAccountRepository implements AccountRepository {
     required int openingBalance,
   }) async {
     await database.transaction(() async {
-      final query = database.select(database.accounts)
+      final query =
+      database.select(database.accounts)
         ..where(
-              (row) => row.id.equals(accountId),
+              (row) => row.id.equals(
+            accountId,
+          ),
         );
 
-      final account = await query.getSingleOrNull();
+      final account =
+      await query.getSingleOrNull();
 
       if (account == null) {
         throw StateError(
@@ -209,9 +311,13 @@ class DriftAccountRepository implements AccountRepository {
           account.currentBalance +
               difference;
 
-      await (database.update(database.accounts)
+      await (database.update(
+        database.accounts,
+      )
         ..where(
-              (row) => row.id.equals(accountId),
+              (row) => row.id.equals(
+            accountId,
+          ),
         ))
           .write(
         AccountsCompanion(
@@ -221,13 +327,17 @@ class DriftAccountRepository implements AccountRepository {
           currentBalance: Value(
             newCurrentBalance,
           ),
-          updatedAt: Value(DateTime.now()),
+          updatedAt: Value(
+            DateTime.now(),
+          ),
         ),
       );
     });
   }
 
-  FinanceAccount _mapAccount(Account account) {
+  FinanceAccount _mapAccount(
+      Account account,
+      ) {
     return FinanceAccount(
       id: account.id,
       name: account.name,
@@ -235,8 +345,10 @@ class DriftAccountRepository implements AccountRepository {
         account.type,
       ),
       provider: account.provider,
-      openingBalance: account.openingBalance,
-      currentBalance: account.currentBalance,
+      openingBalance:
+      account.openingBalance,
+      currentBalance:
+      account.currentBalance,
       isActive: account.isActive,
       createdAt: account.createdAt,
       updatedAt: account.updatedAt,

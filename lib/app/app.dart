@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'app_shell.dart';
 import 'theme.dart';
 
-class KopaApp extends StatelessWidget {
-  const KopaApp({super.key});
+class NomiApp extends StatelessWidget {
+  const NomiApp({super.key});
 
   @override
   Widget build(BuildContext context) {

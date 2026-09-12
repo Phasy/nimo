@@ -50,14 +50,6 @@ const defaultCategoryGroups = <DefaultCategoryGroupSeed>[
         systemKey: 'housing.maintenance',
         sortOrder: 2,
       ),
-    ],
-  ),
-  DefaultCategoryGroupSeed(
-    name: 'Food',
-    type: CategoryType.expense,
-    systemKey: 'food',
-    sortOrder: 1,
-    categories: [
       DefaultCategorySeed(
         name: 'Groceries',
         systemKey: 'food.groceries',
@@ -168,6 +160,11 @@ const defaultCategoryGroups = <DefaultCategoryGroupSeed>[
         systemKey: 'financial.debt_payments',
         sortOrder: 2,
       ),
+      DefaultCategorySeed(
+        name: 'Fees & Charges',
+        systemKey: 'expense.fees_charges',
+        sortOrder: 4,
+      ),
     ],
   ),
   DefaultCategoryGroupSeed(
@@ -254,6 +251,11 @@ const defaultCategoryGroups = <DefaultCategoryGroupSeed>[
         name: 'Other Income',
         systemKey: 'income.other',
         sortOrder: 5,
+      ),
+      DefaultCategorySeed(
+        name: 'Fees & Charges',
+        systemKey: 'income.fees_charges',
+        sortOrder: 6,
       ),
     ],
   ),

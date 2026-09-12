@@ -17,6 +17,25 @@ abstract class TransactionRepository {
 
   Future<FinanceTransaction?> getTransaction(int id);
 
+  /// Returns non-deleted transactions whose financial event falls within:
+  ///
+  /// occurredAt >= [startInclusive]
+  /// occurredAt <  [endExclusive]
+  ///
+  /// Using an exclusive upper bound avoids end-of-month/time precision
+  /// problems.
+  Future<List<FinanceTransaction>> getTransactionsBetween({
+    required DateTime startInclusive,
+    required DateTime endExclusive,
+  });
+
+  /// Returns non-deleted transactions from [startInclusive] onward.
+  ///
+  /// Primarily useful for cumulative budget calculations.
+  Future<List<FinanceTransaction>> getTransactionsFrom({
+    required DateTime startInclusive,
+  });
+
   Future<int> createTransaction({
     required TransactionType type,
     required int accountId,

@@ -68,12 +68,10 @@ class _AddAccountScreenState extends ConsumerState<AddAccountScreen> {
     });
 
     try {
-      final repository = ref.read(accountRepositoryProvider);
-
       if (_isEditing) {
         final existingAccount = widget.account!;
 
-        await repository.updateAccount(
+        await ref.read(accountBudgetServiceProvider).updateAccount(
           FinanceAccount(
             id: existingAccount.id,
             name: _nameController.text.trim(),
@@ -95,7 +93,7 @@ class _AddAccountScreenState extends ConsumerState<AddAccountScreen> {
           ),
         );
       } else {
-        await repository.createAccount(
+        await ref.read(accountRepositoryProvider).createAccount(
           name: _nameController.text.trim(),
           type: _type,
           provider: _type == AccountType.mobileMoney ? _provider : null,
@@ -108,6 +106,18 @@ class _AddAccountScreenState extends ConsumerState<AddAccountScreen> {
       }
 
       Navigator.of(context).pop();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              error is StateError
+                  ? error.message.toString()
+                  : 'Could not save the account. Please try again.',
+            ),
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {

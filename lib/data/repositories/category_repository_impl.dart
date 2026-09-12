@@ -18,49 +18,37 @@ class DriftCategoryRepository implements CategoryRepository {
     final query = _db.select(_db.categoryGroups)
       ..where((table) => table.isActive.equals(true))
       ..orderBy([
-            (table) => OrderingTerm.asc(table.sortOrder),
-            (table) => OrderingTerm.asc(table.name),
+        (table) => OrderingTerm.asc(table.sortOrder),
+        (table) => OrderingTerm.asc(table.name),
       ]);
 
     if (type != null) {
-      query.where(
-            (table) => table.type.equals(type.name),
-      );
+      query.where((table) => table.type.equals(type.name));
     }
 
-    return query.watch().map(
-          (rows) => rows.map(_mapGroup).toList(),
-    );
+    return query.watch().map((rows) => rows.map(_mapGroup).toList());
   }
 
   @override
-  Stream<List<finance_domain.FinanceCategory>> watchCategories({
-    int? groupId,
-  }) {
+  Stream<List<finance_domain.FinanceCategory>> watchCategories({int? groupId}) {
     final query = _db.select(_db.categories)
       ..where((table) => table.isActive.equals(true))
       ..orderBy([
-            (table) => OrderingTerm.asc(table.sortOrder),
-            (table) => OrderingTerm.asc(table.name),
+        (table) => OrderingTerm.asc(table.sortOrder),
+        (table) => OrderingTerm.asc(table.name),
       ]);
 
     if (groupId != null) {
-      query.where(
-            (table) => table.groupId.equals(groupId),
-      );
+      query.where((table) => table.groupId.equals(groupId));
     }
 
-    return query.watch().map(
-          (rows) => rows.map(_mapCategory).toList(),
-    );
+    return query.watch().map((rows) => rows.map(_mapCategory).toList());
   }
 
   @override
   Future<category_domain.CategoryGroup?> getGroup(int id) async {
     final query = _db.select(_db.categoryGroups)
-      ..where(
-            (table) => table.id.equals(id),
-      );
+      ..where((table) => table.id.equals(id));
 
     final row = await query.getSingleOrNull();
 
@@ -70,9 +58,7 @@ class DriftCategoryRepository implements CategoryRepository {
   @override
   Future<finance_domain.FinanceCategory?> getCategory(int id) async {
     final query = _db.select(_db.categories)
-      ..where(
-            (table) => table.id.equals(id),
-      );
+      ..where((table) => table.id.equals(id));
 
     final row = await query.getSingleOrNull();
 
@@ -86,14 +72,16 @@ class DriftCategoryRepository implements CategoryRepository {
     String? systemKey,
     required int sortOrder,
   }) {
-    return _db.into(_db.categoryGroups).insert(
-      CategoryGroupsCompanion.insert(
-        name: name.trim(),
-        type: type.name,
-        systemKey: Value(systemKey),
-        sortOrder: Value(sortOrder),
-      ),
-    );
+    return _db
+        .into(_db.categoryGroups)
+        .insert(
+          CategoryGroupsCompanion.insert(
+            name: name.trim(),
+            type: type.name,
+            systemKey: Value(systemKey),
+            sortOrder: Value(sortOrder),
+          ),
+        );
   }
 
   @override
@@ -103,25 +91,23 @@ class DriftCategoryRepository implements CategoryRepository {
     String? systemKey,
     required int sortOrder,
   }) {
-    return _db.into(_db.categories).insert(
-      CategoriesCompanion.insert(
-        groupId: groupId,
-        name: name.trim(),
-        systemKey: Value(systemKey),
-        sortOrder: Value(sortOrder),
-      ),
-    );
+    return _db
+        .into(_db.categories)
+        .insert(
+          CategoriesCompanion.insert(
+            groupId: groupId,
+            name: name.trim(),
+            systemKey: Value(systemKey),
+            sortOrder: Value(sortOrder),
+          ),
+        );
   }
 
   @override
-  Future<void> updateGroup(
-      category_domain.CategoryGroup group,
-      ) async {
-    await (_db.update(_db.categoryGroups)
-      ..where(
-            (table) => table.id.equals(group.id),
-      ))
-        .write(
+  Future<void> updateGroup(category_domain.CategoryGroup group) async {
+    await (_db.update(
+      _db.categoryGroups,
+    )..where((table) => table.id.equals(group.id))).write(
       CategoryGroupsCompanion(
         name: Value(group.name.trim()),
         type: Value(group.type.name),
@@ -134,14 +120,10 @@ class DriftCategoryRepository implements CategoryRepository {
   }
 
   @override
-  Future<void> updateCategory(
-      finance_domain.FinanceCategory category,
-      ) async {
-    await (_db.update(_db.categories)
-      ..where(
-            (table) => table.id.equals(category.id),
-      ))
-        .write(
+  Future<void> updateCategory(finance_domain.FinanceCategory category) async {
+    await (_db.update(
+      _db.categories,
+    )..where((table) => table.id.equals(category.id))).write(
       CategoriesCompanion(
         groupId: Value(category.groupId),
         name: Value(category.name.trim()),
@@ -156,22 +138,18 @@ class DriftCategoryRepository implements CategoryRepository {
   @override
   Future<void> deactivateGroup(int id) async {
     await _db.transaction(() async {
-      await (_db.update(_db.categoryGroups)
-        ..where(
-              (table) => table.id.equals(id),
-        ))
-          .write(
+      await (_db.update(
+        _db.categoryGroups,
+      )..where((table) => table.id.equals(id))).write(
         CategoryGroupsCompanion(
           isActive: const Value(false),
           updatedAt: Value(DateTime.now()),
         ),
       );
 
-      await (_db.update(_db.categories)
-        ..where(
-              (table) => table.groupId.equals(id),
-        ))
-          .write(
+      await (_db.update(
+        _db.categories,
+      )..where((table) => table.groupId.equals(id))).write(
         CategoriesCompanion(
           isActive: const Value(false),
           updatedAt: Value(DateTime.now()),
@@ -182,11 +160,9 @@ class DriftCategoryRepository implements CategoryRepository {
 
   @override
   Future<void> deactivateCategory(int id) async {
-    await (_db.update(_db.categories)
-      ..where(
-            (table) => table.id.equals(id),
-      ))
-        .write(
+    await (_db.update(
+      _db.categories,
+    )..where((table) => table.id.equals(id))).write(
       CategoriesCompanion(
         isActive: const Value(false),
         updatedAt: Value(DateTime.now()),
@@ -195,18 +171,14 @@ class DriftCategoryRepository implements CategoryRepository {
   }
 
   @override
-  Future<void> reorderGroups(
-      List<int> orderedGroupIds,
-      ) async {
+  Future<void> reorderGroups(List<int> orderedGroupIds) async {
     await _db.transaction(() async {
       for (var index = 0; index < orderedGroupIds.length; index++) {
         final groupId = orderedGroupIds[index];
 
-        await (_db.update(_db.categoryGroups)
-          ..where(
-                (table) => table.id.equals(groupId),
-          ))
-            .write(
+        await (_db.update(
+          _db.categoryGroups,
+        )..where((table) => table.id.equals(groupId))).write(
           CategoryGroupsCompanion(
             sortOrder: Value(index),
             updatedAt: Value(DateTime.now()),
@@ -218,25 +190,23 @@ class DriftCategoryRepository implements CategoryRepository {
 
   @override
   Future<void> reorderCategories(
-      int groupId,
-      List<int> orderedCategoryIds,
-      ) async {
+    int groupId,
+    List<int> orderedCategoryIds,
+  ) async {
     await _db.transaction(() async {
       for (var index = 0; index < orderedCategoryIds.length; index++) {
         final categoryId = orderedCategoryIds[index];
 
-        await (_db.update(_db.categories)
-          ..where(
-                (table) =>
-            table.id.equals(categoryId) &
-            table.groupId.equals(groupId),
-          ))
+        await (_db.update(_db.categories)..where(
+              (table) =>
+                  table.id.equals(categoryId) & table.groupId.equals(groupId),
+            ))
             .write(
-          CategoriesCompanion(
-            sortOrder: Value(index),
-            updatedAt: Value(DateTime.now()),
-          ),
-        );
+              CategoriesCompanion(
+                sortOrder: Value(index),
+                updatedAt: Value(DateTime.now()),
+              ),
+            );
       }
     });
   }
@@ -246,46 +216,45 @@ class DriftCategoryRepository implements CategoryRepository {
     await _db.transaction(() async {
       for (final groupSeed in defaultCategoryGroups) {
         final existingGroupQuery = _db.select(_db.categoryGroups)
-          ..where(
-                (table) => table.systemKey.equals(groupSeed.systemKey),
-          );
+          ..where((table) => table.systemKey.equals(groupSeed.systemKey));
 
         var groupRow = await existingGroupQuery.getSingleOrNull();
 
         int groupId;
 
         if (groupRow == null) {
-          groupId = await _db.into(_db.categoryGroups).insert(
-            CategoryGroupsCompanion.insert(
-              name: groupSeed.name,
-              type: groupSeed.type.name,
-              systemKey: Value(groupSeed.systemKey),
-              sortOrder: Value(groupSeed.sortOrder),
-            ),
-          );
+          groupId = await _db
+              .into(_db.categoryGroups)
+              .insert(
+                CategoryGroupsCompanion.insert(
+                  name: groupSeed.name,
+                  type: groupSeed.type.name,
+                  systemKey: Value(groupSeed.systemKey),
+                  sortOrder: Value(groupSeed.sortOrder),
+                ),
+              );
         } else {
           groupId = groupRow.id;
         }
 
         for (final categorySeed in groupSeed.categories) {
           final existingCategoryQuery = _db.select(_db.categories)
-            ..where(
-                  (table) =>
-                  table.systemKey.equals(categorySeed.systemKey),
-            );
+            ..where((table) => table.systemKey.equals(categorySeed.systemKey));
 
-          final existingCategory =
-          await existingCategoryQuery.getSingleOrNull();
+          final existingCategory = await existingCategoryQuery
+              .getSingleOrNull();
 
           if (existingCategory == null) {
-            await _db.into(_db.categories).insert(
-              CategoriesCompanion.insert(
-                groupId: groupId,
-                name: categorySeed.name,
-                systemKey: Value(categorySeed.systemKey),
-                sortOrder: Value(categorySeed.sortOrder),
-              ),
-            );
+            await _db
+                .into(_db.categories)
+                .insert(
+                  CategoriesCompanion.insert(
+                    groupId: groupId,
+                    name: categorySeed.name,
+                    systemKey: Value(categorySeed.systemKey),
+                    sortOrder: Value(categorySeed.sortOrder),
+                  ),
+                );
           }
         }
       }
@@ -302,16 +271,14 @@ class DriftCategoryRepository implements CategoryRepository {
 
     final query = _db.select(_db.categoryGroups)
       ..where(
-            (table) =>
-        table.type.equals(type.name) &
-        table.isActive.equals(true) &
-        table.name.lower().equals(normalizedName),
+        (table) =>
+            table.type.equals(type.name) &
+            table.isActive.equals(true) &
+            table.name.lower().equals(normalizedName),
       );
 
     if (excludingGroupId != null) {
-      query.where(
-            (table) => table.id.equals(excludingGroupId).not(),
-      );
+      query.where((table) => table.id.equals(excludingGroupId).not());
     }
 
     final existing = await query.getSingleOrNull();
@@ -329,17 +296,14 @@ class DriftCategoryRepository implements CategoryRepository {
 
     final query = _db.select(_db.categories)
       ..where(
-            (table) =>
-        table.groupId.equals(groupId) &
-        table.isActive.equals(true) &
-        table.name.lower().equals(normalizedName),
+        (table) =>
+            table.groupId.equals(groupId) &
+            table.isActive.equals(true) &
+            table.name.lower().equals(normalizedName),
       );
 
     if (excludingCategoryId != null) {
-      query.where(
-            (table) =>
-            table.id.equals(excludingCategoryId).not(),
-      );
+      query.where((table) => table.id.equals(excludingCategoryId).not());
     }
 
     final existing = await query.getSingleOrNull();
@@ -356,28 +320,21 @@ class DriftCategoryRepository implements CategoryRepository {
     await _db.transaction(() async {
       final destinationQuery = _db.select(_db.categories)
         ..where(
-              (table) =>
-          table.groupId.equals(newGroupId) &
-          table.isActive.equals(true),
+          (table) =>
+              table.groupId.equals(newGroupId) & table.isActive.equals(true),
         )
-        ..orderBy([
-              (table) => OrderingTerm.desc(table.sortOrder),
-        ])
+        ..orderBy([(table) => OrderingTerm.desc(table.sortOrder)])
         ..limit(1);
 
-      final lastCategory =
-      await destinationQuery.getSingleOrNull();
+      final lastCategory = await destinationQuery.getSingleOrNull();
 
-      final nextSortOrder =
-      lastCategory == null
+      final nextSortOrder = lastCategory == null
           ? 0
           : lastCategory.sortOrder + 1;
 
-      await (_db.update(_db.categories)
-        ..where(
-              (table) => table.id.equals(category.id),
-        ))
-          .write(
+      await (_db.update(
+        _db.categories,
+      )..where((table) => table.id.equals(category.id))).write(
         CategoriesCompanion(
           groupId: Value(newGroupId),
           name: Value(name.trim()),
@@ -388,15 +345,23 @@ class DriftCategoryRepository implements CategoryRepository {
     });
   }
 
-  category_domain.CategoryGroup _mapGroup(
-      CategoryGroup row,
-      ) {
+  @override
+  Future<finance_domain.FinanceCategory?> getCategoryBySystemKey(
+    String systemKey,
+  ) async {
+    final query = _db.select(_db.categories)
+      ..where((table) => table.systemKey.equals(systemKey));
+
+    final row = await query.getSingleOrNull();
+
+    return row == null ? null : _mapCategory(row);
+  }
+
+  category_domain.CategoryGroup _mapGroup(CategoryGroup row) {
     return category_domain.CategoryGroup(
       id: row.id,
       name: row.name,
-      type: category_domain.CategoryType.values.byName(
-        row.type,
-      ),
+      type: category_domain.CategoryType.values.byName(row.type),
       systemKey: row.systemKey,
       sortOrder: row.sortOrder,
       isActive: row.isActive,
@@ -405,9 +370,7 @@ class DriftCategoryRepository implements CategoryRepository {
     );
   }
 
-  finance_domain.FinanceCategory _mapCategory(
-      Category row,
-      ) {
+  finance_domain.FinanceCategory _mapCategory(Category row) {
     return finance_domain.FinanceCategory(
       id: row.id,
       groupId: row.groupId,

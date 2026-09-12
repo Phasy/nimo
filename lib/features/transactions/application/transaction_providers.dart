@@ -6,6 +6,7 @@ import '../../../domain/repositories/transaction_repository.dart';
 import '../../../services/transaction_service.dart';
 import '../../accounts/application/account_providers.dart';
 import '../../categories/application/category_providers.dart';
+import '../../budget/application/budget_providers.dart';
 
 final transactionRepositoryProvider =
 Provider<TransactionRepository>((ref) {
@@ -29,6 +30,10 @@ Provider<TransactionService>((ref) {
     transactionRepository: transactionRepository,
     accountRepository: accountRepository,
     categoryRepository: categoryRepository,
+    transactionLineItemRepository:
+    ref.watch(transactionLineItemRepositoryProvider),
+    budgetRepository:
+    ref.watch(budgetRepositoryProvider),
   );
 });
 

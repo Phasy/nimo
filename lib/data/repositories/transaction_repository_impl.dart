@@ -79,6 +79,67 @@ class DriftTransactionRepository
   }
 
   @override
+  Future<List<FinanceTransaction>>
+  getTransactionsBetween({
+    required DateTime startInclusive,
+    required DateTime endExclusive,
+  }) async {
+    if (!endExclusive.isAfter(startInclusive)) {
+      throw ArgumentError(
+        'Transaction date range must have an end after its start.',
+      );
+    }
+
+    final query = database.select(database.transactions)
+      ..where(
+            (transaction) =>
+        transaction.isDeleted.equals(false) &
+        transaction.occurredAt
+            .isBiggerOrEqualValue(startInclusive) &
+        transaction.occurredAt
+            .isSmallerThanValue(endExclusive),
+      )
+      ..orderBy([
+            (transaction) => OrderingTerm.asc(
+          transaction.occurredAt,
+        ),
+            (transaction) => OrderingTerm.asc(
+          transaction.id,
+        ),
+      ]);
+
+    final rows = await query.get();
+
+    return rows.map(_mapTransaction).toList();
+  }
+
+  @override
+  Future<List<FinanceTransaction>>
+  getTransactionsFrom({
+    required DateTime startInclusive,
+  }) async {
+    final query = database.select(database.transactions)
+      ..where(
+            (transaction) =>
+        transaction.isDeleted.equals(false) &
+        transaction.occurredAt
+            .isBiggerOrEqualValue(startInclusive),
+      )
+      ..orderBy([
+            (transaction) => OrderingTerm.asc(
+          transaction.occurredAt,
+        ),
+            (transaction) => OrderingTerm.asc(
+          transaction.id,
+        ),
+      ]);
+
+    final rows = await query.get();
+
+    return rows.map(_mapTransaction).toList();
+  }
+
+  @override
   Future<int> createTransaction({
     required TransactionType type,
     required int accountId,

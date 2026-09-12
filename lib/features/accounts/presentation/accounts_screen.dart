@@ -5,119 +5,305 @@ import '../../../app/theme.dart';
 import '../../../core/utils/money.dart';
 import '../../../domain/models/finance_account.dart';
 import '../application/account_providers.dart';
-import 'add_account_screen.dart';
 import 'account_detail_screen.dart';
+import 'add_account_screen.dart';
 
 class AccountsScreen extends ConsumerWidget {
-  const AccountsScreen({super.key});
+  const AccountsScreen({
+    super.key,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final accountsAsync = ref.watch(accountsProvider);
-    final totalBalanceAsync = ref.watch(totalAccountBalanceProvider);
+  Widget build(
+      BuildContext context,
+      WidgetRef ref,
+      ) {
+    final accountsAsync =
+    ref.watch(accountsProvider);
+
+    final totalBalanceAsync =
+    ref.watch(
+      totalAccountBalanceProvider,
+    );
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor:
+      AppTheme.background,
       appBar: AppBar(
         title: const Text('Accounts'),
-        backgroundColor: AppTheme.background,
-        surfaceTintColor: Colors.transparent,
+        backgroundColor:
+        AppTheme.background,
+        surfaceTintColor:
+        Colors.transparent,
+        actions: [
+          PopupMenuButton<
+              _AccountsMenuAction>(
+            tooltip: 'Account options',
+            onSelected: (action) {
+              switch (action) {
+                case _AccountsMenuAction
+                    .inactiveAccounts:
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                      const InactiveAccountsScreen(),
+                    ),
+                  );
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: _AccountsMenuAction
+                    .inactiveAccounts,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.archive_outlined,
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'Inactive accounts',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: accountsAsync.when(
         data: (accounts) {
           if (accounts.isEmpty) {
-            return _EmptyAccounts(onAddAccount: () => _openAddAccount(context));
+            return _EmptyAccounts(
+              onAddAccount: () =>
+                  _openAddAccount(
+                    context,
+                  ),
+            );
           }
 
           return _AccountsList(
             accounts: accounts,
-            totalBalance: totalBalanceAsync.value ?? 0,
+            totalBalance:
+            totalBalanceAsync.value ??
+                0,
           );
         },
         loading: () {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child:
+            CircularProgressIndicator(),
+          );
         },
-        error: (error, stackTrace) {
+        error: (
+            error,
+            stackTrace,
+            ) {
           return Center(
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding:
+              const EdgeInsets.all(
+                24,
+              ),
               child: Text(
                 'Something went wrong while loading your accounts.',
-                textAlign: TextAlign.center,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
+                textAlign:
+                TextAlign.center,
+                style:
+                Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(
+                  color: AppTheme
+                      .textSecondary,
+                ),
               ),
             ),
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'accounts_add_account_fab',
-        onPressed: () => _openAddAccount(context),
-        backgroundColor: AppTheme.primary,
+      floatingActionButton:
+      FloatingActionButton(
+        heroTag:
+        'accounts_add_account_fab',
+        onPressed: () =>
+            _openAddAccount(
+              context,
+            ),
+        backgroundColor:
+        AppTheme.primary,
         foregroundColor: Colors.white,
         elevation: 2,
-        child: const Icon(Icons.add_rounded),
+        child: const Icon(
+          Icons.add_rounded,
+        ),
       ),
     );
   }
 
-  void _openAddAccount(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const AddAccountScreen()));
+  void _openAddAccount(
+      BuildContext context,
+      ) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+        const AddAccountScreen(),
+      ),
+    );
   }
 }
 
-class _EmptyAccounts extends StatelessWidget {
+enum _AccountsMenuAction {
+  inactiveAccounts,
+}
+
+class InactiveAccountsScreen
+    extends ConsumerWidget {
+  const InactiveAccountsScreen({
+    super.key,
+  });
+
+  @override
+  Widget build(
+      BuildContext context,
+      WidgetRef ref,
+      ) {
+    final inactiveAsync =
+    ref.watch(
+      inactiveAccountsProvider,
+    );
+
+    return Scaffold(
+      backgroundColor:
+      AppTheme.background,
+      appBar: AppBar(
+        title: const Text(
+          'Inactive accounts',
+        ),
+        backgroundColor:
+        AppTheme.background,
+        surfaceTintColor:
+        Colors.transparent,
+      ),
+      body: inactiveAsync.when(
+        data: (accounts) {
+          if (accounts.isEmpty) {
+            return const _EmptyInactiveAccounts();
+          }
+
+          return _InactiveAccountsList(
+            accounts: accounts,
+          );
+        },
+        loading: () {
+          return const Center(
+            child:
+            CircularProgressIndicator(),
+          );
+        },
+        error: (_, __) {
+          return Center(
+            child: Padding(
+              padding:
+              const EdgeInsets.all(
+                24,
+              ),
+              child: Text(
+                'Something went wrong while loading inactive accounts.',
+                textAlign:
+                TextAlign.center,
+                style:
+                Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(
+                  color: AppTheme
+                      .textSecondary,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _EmptyAccounts
+    extends StatelessWidget {
   final VoidCallback onAddAccount;
 
-  const _EmptyAccounts({required this.onAddAccount});
+  const _EmptyAccounts({
+    required this.onAddAccount,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(28),
+        padding:
+        const EdgeInsets.all(28),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize:
+          MainAxisSize.min,
           children: [
             Container(
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(22),
+                color: AppTheme.primary
+                    .withValues(
+                  alpha: 0.08,
+                ),
+                borderRadius:
+                BorderRadius.circular(
+                  22,
+                ),
               ),
               child: const Icon(
-                Icons.account_balance_wallet_outlined,
+                Icons
+                    .account_balance_wallet_outlined,
                 size: 32,
-                color: AppTheme.primaryDark,
+                color:
+                AppTheme.primaryDark,
               ),
             ),
             const SizedBox(height: 20),
             Text(
-              'No accounts yet',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
+              'No active accounts',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(
+                fontWeight:
+                FontWeight.w700,
+                color:
+                AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Add where your money currently lives — bank, mobile money, cash, or another account.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
+              textAlign:
+              TextAlign.center,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(
+                color: AppTheme
+                    .textSecondary,
                 height: 1.5,
               ),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: onAddAccount,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Add account'),
+              icon: const Icon(
+                Icons.add_rounded,
+              ),
+              label: const Text(
+                'Add account',
+              ),
             ),
           ],
         ),
@@ -126,63 +312,299 @@ class _EmptyAccounts extends StatelessWidget {
   }
 }
 
-class _AccountsList extends StatelessWidget {
+class _EmptyInactiveAccounts
+    extends StatelessWidget {
+  const _EmptyInactiveAccounts();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding:
+        const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize:
+          MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppTheme.primary
+                    .withValues(
+                  alpha: 0.08,
+                ),
+                borderRadius:
+                BorderRadius.circular(
+                  22,
+                ),
+              ),
+              child: const Icon(
+                Icons.archive_outlined,
+                size: 32,
+                color:
+                AppTheme.primaryDark,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'No inactive accounts',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(
+                fontWeight:
+                FontWeight.w700,
+                color:
+                AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Accounts you deactivate will remain available here so their history is preserved and they can be reactivated later.',
+              textAlign:
+              TextAlign.center,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(
+                color: AppTheme
+                    .textSecondary,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AccountsList
+    extends StatelessWidget {
   final List<FinanceAccount> accounts;
   final int totalBalance;
 
-  const _AccountsList({required this.accounts, required this.totalBalance});
+  const _AccountsList({
+    required this.accounts,
+    required this.totalBalance,
+  });
 
   @override
   Widget build(BuildContext context) {
     final bankAccounts = accounts
-        .where((account) => account.type == AccountType.bank)
+        .where(
+          (account) =>
+      account.type ==
+          AccountType.bank,
+    )
         .toList();
 
     final mobileMoneyAccounts = accounts
-        .where((account) => account.type == AccountType.mobileMoney)
+        .where(
+          (account) =>
+      account.type ==
+          AccountType.mobileMoney,
+    )
         .toList();
 
     final cashAccounts = accounts
-        .where((account) => account.type == AccountType.cash)
+        .where(
+          (account) =>
+      account.type ==
+          AccountType.cash,
+    )
         .toList();
 
     final otherAccounts = accounts
-        .where((account) => account.type == AccountType.other)
+        .where(
+          (account) =>
+      account.type ==
+          AccountType.other,
+    )
         .toList();
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+      padding:
+      const EdgeInsets.fromLTRB(
+        20,
+        12,
+        20,
+        100,
+      ),
       children: [
         _TotalMoneyCard(
-          totalBalance: totalBalance,
-          accountCount: accounts.length,
+          totalBalance:
+          totalBalance,
+          accountCount:
+          accounts.length,
         ),
-
         const SizedBox(height: 30),
-
-        if (bankAccounts.isNotEmpty) ...[
-          _AccountGroup(title: 'BANK', accounts: bankAccounts),
+        if (bankAccounts
+            .isNotEmpty) ...[
+          _AccountGroup(
+            title: 'BANK',
+            accounts: bankAccounts,
+          ),
           const SizedBox(height: 26),
         ],
-
-        if (mobileMoneyAccounts.isNotEmpty) ...[
-          _AccountGroup(title: 'MOBILE MONEY', accounts: mobileMoneyAccounts),
+        if (mobileMoneyAccounts
+            .isNotEmpty) ...[
+          _AccountGroup(
+            title: 'MOBILE MONEY',
+            accounts:
+            mobileMoneyAccounts,
+          ),
           const SizedBox(height: 26),
         ],
-
-        if (cashAccounts.isNotEmpty) ...[
-          _AccountGroup(title: 'CASH', accounts: cashAccounts),
+        if (cashAccounts
+            .isNotEmpty) ...[
+          _AccountGroup(
+            title: 'CASH',
+            accounts: cashAccounts,
+          ),
           const SizedBox(height: 26),
         ],
-
-        if (otherAccounts.isNotEmpty)
-          _AccountGroup(title: 'OTHER', accounts: otherAccounts),
+        if (otherAccounts
+            .isNotEmpty)
+          _AccountGroup(
+            title: 'OTHER',
+            accounts: otherAccounts,
+          ),
       ],
     );
   }
 }
 
-class _TotalMoneyCard extends StatelessWidget {
+class _InactiveAccountsList
+    extends StatelessWidget {
+  final List<FinanceAccount> accounts;
+
+  const _InactiveAccountsList({
+    required this.accounts,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bankAccounts = accounts
+        .where(
+          (account) =>
+      account.type ==
+          AccountType.bank,
+    )
+        .toList();
+
+    final mobileMoneyAccounts = accounts
+        .where(
+          (account) =>
+      account.type ==
+          AccountType.mobileMoney,
+    )
+        .toList();
+
+    final cashAccounts = accounts
+        .where(
+          (account) =>
+      account.type ==
+          AccountType.cash,
+    )
+        .toList();
+
+    final otherAccounts = accounts
+        .where(
+          (account) =>
+      account.type ==
+          AccountType.other,
+    )
+        .toList();
+
+    return ListView(
+      padding:
+      const EdgeInsets.fromLTRB(
+        20,
+        12,
+        20,
+        40,
+      ),
+      children: [
+        Container(
+          padding:
+          const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius:
+            BorderRadius.circular(
+              18,
+            ),
+            border: Border.all(
+              color: AppTheme.border,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.info_outline_rounded,
+                color:
+                AppTheme.textSecondary,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Inactive accounts are excluded from your active balances and new transaction selectors. Their transaction history is preserved.',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(
+                    color: AppTheme
+                        .textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 28),
+        if (bankAccounts
+            .isNotEmpty) ...[
+          _AccountGroup(
+            title: 'BANK',
+            accounts: bankAccounts,
+          ),
+          const SizedBox(height: 26),
+        ],
+        if (mobileMoneyAccounts
+            .isNotEmpty) ...[
+          _AccountGroup(
+            title: 'MOBILE MONEY',
+            accounts:
+            mobileMoneyAccounts,
+          ),
+          const SizedBox(height: 26),
+        ],
+        if (cashAccounts
+            .isNotEmpty) ...[
+          _AccountGroup(
+            title: 'CASH',
+            accounts: cashAccounts,
+          ),
+          const SizedBox(height: 26),
+        ],
+        if (otherAccounts
+            .isNotEmpty)
+          _AccountGroup(
+            title: 'OTHER',
+            accounts: otherAccounts,
+          ),
+      ],
+    );
+  }
+}
+
+class _TotalMoneyCard
+    extends StatelessWidget {
   final int totalBalance;
   final int accountCount;
 
@@ -194,14 +616,19 @@ class _TotalMoneyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding:
+      const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppTheme.border),
+        borderRadius:
+        BorderRadius.circular(22),
+        border: Border.all(
+          color: AppTheme.border,
+        ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -209,13 +636,22 @@ class _TotalMoneyCard extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppTheme.primary
+                      .withValues(
+                    alpha: 0.08,
+                  ),
+                  borderRadius:
+                  BorderRadius
+                      .circular(
+                    12,
+                  ),
                 ),
                 child: const Icon(
-                  Icons.account_balance_wallet_outlined,
+                  Icons
+                      .account_balance_wallet_outlined,
                   size: 21,
-                  color: AppTheme.primaryDark,
+                  color: AppTheme
+                      .primaryDark,
                 ),
               ),
               const Spacer(),
@@ -223,9 +659,15 @@ class _TotalMoneyCard extends StatelessWidget {
                 accountCount == 1
                     ? '1 active account'
                     : '$accountCount active accounts',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondary,
-                  fontWeight: FontWeight.w500,
+                style:
+                Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(
+                  color: AppTheme
+                      .textSecondary,
+                  fontWeight:
+                  FontWeight.w500,
                 ),
               ),
             ],
@@ -233,18 +675,30 @@ class _TotalMoneyCard extends StatelessWidget {
           const SizedBox(height: 22),
           Text(
             'TOTAL MONEY',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: AppTheme.textSecondary,
-              fontWeight: FontWeight.w700,
+            style: Theme.of(context)
+                .textTheme
+                .labelMedium
+                ?.copyWith(
+              color: AppTheme
+                  .textSecondary,
+              fontWeight:
+              FontWeight.w700,
               letterSpacing: 0.9,
             ),
           ),
           const SizedBox(height: 6),
           Text(
-            Money.formatZmw(totalBalance),
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: AppTheme.textPrimary,
+            Money.formatZmw(
+              totalBalance,
+            ),
+            style: Theme.of(context)
+                .textTheme
+                .headlineMedium
+                ?.copyWith(
+              fontWeight:
+              FontWeight.w800,
+              color:
+              AppTheme.textPrimary,
               letterSpacing: -0.5,
             ),
           ),
@@ -254,24 +708,38 @@ class _TotalMoneyCard extends StatelessWidget {
   }
 }
 
-class _AccountGroup extends StatelessWidget {
+class _AccountGroup
+    extends StatelessWidget {
   final String title;
   final List<FinanceAccount> accounts;
 
-  const _AccountGroup({required this.title, required this.accounts});
+  const _AccountGroup({
+    required this.title,
+    required this.accounts,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 2),
+          padding:
+          const EdgeInsets.only(
+            left: 4,
+            bottom: 2,
+          ),
           child: Text(
             title,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: AppTheme.textSecondary,
-              fontWeight: FontWeight.w700,
+            style: Theme.of(context)
+                .textTheme
+                .labelMedium
+                ?.copyWith(
+              color: AppTheme
+                  .textSecondary,
+              fontWeight:
+              FontWeight.w700,
               letterSpacing: 0.9,
             ),
           ),
@@ -280,31 +748,48 @@ class _AccountGroup extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppTheme.border),
+            borderRadius:
+            BorderRadius.circular(
+              18,
+            ),
+            border: Border.all(
+              color: AppTheme.border,
+            ),
           ),
-          clipBehavior: Clip.antiAlias,
+          clipBehavior:
+          Clip.antiAlias,
           child: Column(
             children: [
-              for (var index = 0; index < accounts.length; index++) ...[
+              for (var index = 0;
+              index <
+                  accounts.length;
+              index++) ...[
                 _AccountGroupRow(
-                  account: accounts[index],
+                  account:
+                  accounts[index],
                   onTap: () {
-                    Navigator.of(context).push(
+                    Navigator.of(context)
+                        .push(
                       MaterialPageRoute(
-                        builder: (_) => AccountDetailScreen(
-                          accountId: accounts[index].id,
-                        ),
+                        builder: (_) =>
+                            AccountDetailScreen(
+                              accountId:
+                              accounts[
+                              index]
+                                  .id,
+                            ),
                       ),
                     );
                   },
                 ),
-                if (index < accounts.length - 1)
+                if (index <
+                    accounts.length - 1)
                   const Divider(
                     height: 1,
                     indent: 76,
                     endIndent: 16,
-                    color: AppTheme.border,
+                    color:
+                    AppTheme.border,
                   ),
               ],
             ],
@@ -315,7 +800,8 @@ class _AccountGroup extends StatelessWidget {
   }
 }
 
-class _AccountGroupRow extends StatelessWidget {
+class _AccountGroupRow
+    extends StatelessWidget {
   final FinanceAccount account;
   final VoidCallback onTap;
 
@@ -327,44 +813,82 @@ class _AccountGroupRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-    onTap: onTap,
+      onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        padding:
+        const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 15,
+        ),
         child: Row(
           children: [
             Container(
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(14),
+                color: AppTheme.primary
+                    .withValues(
+                  alpha: account.isActive
+                      ? 0.08
+                      : 0.04,
+                ),
+                borderRadius:
+                BorderRadius.circular(
+                  14,
+                ),
               ),
               child: Icon(
-                _iconForAccount(account.type),
-                color: AppTheme.primaryDark,
+                _iconForAccount(
+                  account.type,
+                ),
+                color: account.isActive
+                    ? AppTheme.primaryDark
+                    : AppTheme
+                    .textSecondary,
               ),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                CrossAxisAlignment
+                    .start,
                 children: [
                   Text(
                     account.name,
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                    overflow: TextOverflow
+                        .ellipsis,
+                    style:
+                    Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(
+                      fontWeight:
+                      FontWeight.w600,
+                      color: AppTheme
+                          .textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(
+                    height: 3,
+                  ),
                   Text(
-                    _labelForAccount(account),
+                    account.isActive
+                        ? _labelForAccount(
+                      account,
+                    )
+                        : '${_labelForAccount(account)} • Inactive',
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textSecondary,
+                    overflow: TextOverflow
+                        .ellipsis,
+                    style:
+                    Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(
+                      color: AppTheme
+                          .textSecondary,
                     ),
                   ),
                 ],
@@ -372,17 +896,28 @@ class _AccountGroupRow extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Text(
-              Money.formatZmw(account.currentBalance),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
+              Money.formatZmw(
+                account.currentBalance,
+              ),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(
+                fontWeight:
+                FontWeight.w700,
+                color: account.isActive
+                    ? AppTheme.textPrimary
+                    : AppTheme
+                    .textSecondary,
               ),
             ),
             const SizedBox(width: 6),
             const Icon(
-              Icons.chevron_right_rounded,
+              Icons
+                  .chevron_right_rounded,
               size: 20,
-              color: AppTheme.textSecondary,
+              color:
+              AppTheme.textSecondary,
             ),
           ],
         ),
@@ -390,24 +925,33 @@ class _AccountGroupRow extends StatelessWidget {
     );
   }
 
-  IconData _iconForAccount(AccountType type) {
+  IconData _iconForAccount(
+      AccountType type,
+      ) {
     switch (type) {
       case AccountType.bank:
-        return Icons.account_balance_outlined;
+        return Icons
+            .account_balance_outlined;
 
       case AccountType.mobileMoney:
-        return Icons.phone_android_rounded;
+        return Icons
+            .phone_android_rounded;
 
       case AccountType.cash:
-        return Icons.payments_outlined;
+        return Icons
+            .payments_outlined;
 
       case AccountType.other:
-        return Icons.account_balance_wallet_outlined;
+        return Icons
+            .account_balance_wallet_outlined;
     }
   }
 
-  String _labelForAccount(FinanceAccount account) {
-    if (account.provider != null && account.provider!.isNotEmpty) {
+  String _labelForAccount(
+      FinanceAccount account,
+      ) {
+    if (account.provider != null &&
+        account.provider!.isNotEmpty) {
       return account.provider!;
     }
 
